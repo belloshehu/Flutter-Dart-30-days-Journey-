@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:http/http.dart'
+    as http; // Add this import for making HTTP requests
 
 const version = '1.1.0';
 
@@ -8,7 +10,7 @@ void main(List<String> arguments) {
   } else if (arguments.first == 'version') {
     String cliVersion = arguments.first;
     print('Dartpedia CLI version $version $cliVersion');
-  } else if (arguments.first == 'search') {
+  } else if (arguments.first == 'wikipedia') {
     final inputArg = arguments.length > 1 ? arguments.sublist(1) : null;
     searchWikipedia(inputArg);
   } else {
@@ -23,16 +25,37 @@ void printUsage() {
   );
 }
 
-void searchWikipedia(List<String>? arguments) {
-  final String artticelTile;
+void searchWikipedia(List<String>? arguments) async {
+  final String articleTitle;
 
   if (arguments == null || arguments.isEmpty) {
     print("Please provide an article title to search for:");
-    artticelTile = stdin.readLineSync() ?? '';
+    articleTitle = stdin.readLineSync() ?? '';
+
+    if (articleTitle.isEmpty) {
+      print("No article title provided. Exiting.");
+      return;
+    }
   } else {
-    artticelTile = arguments.join(' ');
+    articleTitle = arguments.join(' ');
   }
-  print("Looking up an article about $artticelTile. Please wait...");
-  print("Here ya go!");
-  print("Pretend this to be the article content about $artticelTile.");
+  final articleContent = await getWikipediaArticle(articleTitle);
+  print(articleContent);
+}
+
+Future<String> getWikipediaArticle(String articleTitle) async {
+  // final url = 'https://en.wikipedia.org/api/rest_v1/page/summary/$articleTitle';
+  final url = Uri.https(
+    'en.wikipedia.org', // Wikipedia API domain
+    '/api/rest_v1/page/summary/$articleTitle', // API path for article summary
+  );
+
+  final response = await http.get(url);
+
+  // fetch the article content from Wikipedia API
+  if (response.statusCode == 200) {
+    return response.body; // Return the article content
+  }
+  // Return an error message if the request failed
+  return 'Error: Failed to fetch article "$articleTitle". Status code: ${response.statusCode}';
 }
